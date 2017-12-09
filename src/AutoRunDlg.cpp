@@ -6,6 +6,7 @@
 #include "AutoRun.h"
 #include "AutoRunDlg.h"
 #include "afxdialogex.h"
+#include "GlobalFunction.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -100,9 +101,16 @@ BOOL CAutoRunDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	SetBackBmp(_T("D:\\AutoRun\\Debug\\dat01\\ap12.dat"));
+	InitializeUI();
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+}
+
+void CAutoRunDlg::InitializeUI()
+{
+	CString strConfigPath = CGlobalFunction::GetCurPath();
+	strConfigPath.Append(_T("\\AutoRun\\"));
+	CString strConfigFile = strConfigPath + _T("\\Config.ini");
 }
 
 void CAutoRunDlg::OnSysCommand(UINT nID, LPARAM lParam)
