@@ -12,6 +12,7 @@ static char THIS_FILE[] = __FILE__;
 BEGIN_MESSAGE_MAP(CTooltipsDialog, CDialog)
 	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, &CTooltipsDialog::OnToolTipText)
 	ON_WM_PAINT()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 CTooltipsDialog::CTooltipsDialog(UINT nIDTemplate, CWnd* pParent/* = NULL*/)
@@ -23,7 +24,7 @@ CTooltipsDialog::~CTooltipsDialog(void)
 {
 }
 
-void CTooltipsDialog::SetBackBmp(CString strBkImg)
+void CTooltipsDialog::SetBackgroundImg(CString strBkImg)
 {
 	HRESULT hr = m_imgBk.Load(strBkImg);
 	if (hr)
@@ -65,23 +66,7 @@ BOOL CTooltipsDialog::GetToolTips( UINT nID,CString &strTips )
 
 void CTooltipsDialog::OnPaint()
 {
-	CDC * pDC = GetDC();
-
-	CRect rtClient;
-	GetClientRect(rtClient);
-	CDC dcMem;
-	CBitmap bmpMem;
-	dcMem.CreateCompatibleDC(NULL);
-	bmpMem.CreateCompatibleBitmap(pDC, rtClient.Width(), rtClient.Height());
-	dcMem.SelectObject(&bmpMem);
-	if (!m_imgBk.IsNull())
-	{
-		m_imgBk.StretchBlt(dcMem.GetSafeHdc(), 0, 0, rtClient.Width(), rtClient.Height(), 0, 0, m_imgBk.GetWidth(), m_imgBk.GetHeight());
-	}
-
-	pDC->BitBlt(0, 0, rtClient.Width(), rtClient.Height(), &dcMem, 0, 0, SRCCOPY);
-
-	ReleaseDC(pDC);
+	CDialog::OnPaint();
 }
 
 BOOL CTooltipsDialog::PreTranslateMessage( MSG* pMsg )
@@ -112,6 +97,27 @@ BOOL CTooltipsDialog::OnInitDialog()
 		assert(GetDlgItem(it->first));
 		m_tt.AddTool(GetDlgItem(it->first), LPSTR_TEXTCALLBACK);//Ìí¼Ó
 	}
+	return TRUE;
+}
+
+BOOL CTooltipsDialog::OnEraseBkgnd(CDC * pDC)
+{
+	CDialog::OnEraseBkgnd(pDC);
+
+	CRect rtClient;
+	GetClientRect(rtClient);
+	CDC dcMem;
+	CBitmap bmpMem;
+	dcMem.CreateCompatibleDC(NULL);
+	bmpMem.CreateCompatibleBitmap(pDC, rtClient.Width(), rtClient.Height());
+	dcMem.SelectObject(&bmpMem);
+	if (!m_imgBk.IsNull())
+	{
+		m_imgBk.StretchBlt(dcMem.GetSafeHdc(), 0, 0, rtClient.Width(), rtClient.Height(), 0, 0, m_imgBk.GetWidth(), m_imgBk.GetHeight());
+	}
+
+	pDC->BitBlt(0, 0, rtClient.Width(), rtClient.Height(), &dcMem, 0, 0, SRCCOPY);
+
 	return TRUE;
 }
 

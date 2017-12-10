@@ -12,6 +12,7 @@
 #define new DEBUG_NEW
 #endif
 
+const int CONTROL_BUTTON_ID = 1001;
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -65,7 +66,8 @@ BEGIN_MESSAGE_MAP(CAutoRunDlg, CTooltipsDialog)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_WM_ERASEBKGND()
+	ON_WM_DESTROY()
+	ON_COMMAND_RANGE(CONTROL_BUTTON_ID, CONTROL_BUTTON_ID + 10, OnRangeButtonCmds)
 END_MESSAGE_MAP()
 
 
@@ -106,11 +108,59 @@ BOOL CAutoRunDlg::OnInitDialog()
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
-void CAutoRunDlg::InitializeUI()
+void CAutoRunDlg::LoadConfig()
 {
 	CString strConfigPath = CGlobalFunction::GetCurPath();
 	strConfigPath.Append(_T("\\AutoRun\\"));
-	CString strConfigFile = strConfigPath + _T("\\Config.ini");
+	CString strConfigFile = strConfigPath + _T("Config.ini");
+
+	GetPrivateProfileString(_T("config"), _T("background_img"), m_strBkImg, m_strBkImg.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);
+	m_strBkImg.ReleaseBuffer();
+
+	m_nWndWidth = GetPrivateProfileInt(_T("config"), _T("window_width"), 600, strConfigFile);
+	m_nWndHeight = GetPrivateProfileInt(_T("config"), _T("window_height"), 400, strConfigFile);
+
+	int nBtnCount = 0;
+	nBtnCount = GetPrivateProfileInt(_T("config"), _T("button_count"), 0, strConfigFile);
+	CString strButton;
+	for (size_t i = 0; i < nBtnCount; i++)
+	{
+		strButton.Format(_T("button%d"), i + 1);
+		StuButtonInfo btnInfo;
+		CString strImg;
+		GetPrivateProfileString(_T("config"), strButton + _T("_img"), strImg, strImg.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);
+		strImg.ReleaseBuffer();
+		btnInfo.strImg = strConfigPath + strImg;
+		GetPrivateProfileString(_T("config"), strButton + _T("_tips"), btnInfo.strTips, btnInfo.strTips.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);
+		btnInfo.strTips.ReleaseBuffer();
+		btnInfo.x = GetPrivateProfileInt(_T("config"), strButton + _T("_x"), 0, strConfigFile);
+		btnInfo.y = GetPrivateProfileInt(_T("config"), strButton + _T("_y"), 0, strConfigFile);
+		btnInfo.width = GetPrivateProfileInt(_T("config"), strButton + _T("_width"), 0, strConfigFile);
+		btnInfo.height = GetPrivateProfileInt(_T("config"), strButton + _T("_height"), 0, strConfigFile);
+		GetPrivateProfileString(_T("config"), strButton + _T("_command"), btnInfo.strCommand, btnInfo.strCommand.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);
+		btnInfo.strCommand.ReleaseBuffer();
+		m_vecButtonInfo.push_back(btnInfo);
+	}
+}
+
+void CAutoRunDlg::InitializeUI()
+{
+	LoadConfig();
+	SetBackgroundImg(m_strBkImg);
+	MoveWindow(0, 0, m_nWndWidth,m_nWndHeight);
+	CenterWindow();
+	for (size_t i = 0; i < m_vecButtonInfo.size(); i++)
+	{
+		m_vecButtonInfo[i].pButton = new CImgButton;
+		m_vecButtonInfo[i].pButton->Create(_T(""), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_OWNERDRAW, CRect(0, 0, 10, 10), this, CONTROL_BUTTON_ID + i);
+		m_vecButtonInfo[i].pButton->MoveWindow(m_vecButtonInfo[i].x, m_vecButtonInfo[i].y, m_vecButtonInfo[i].width, m_vecButtonInfo[i].height);
+		m_vecButtonInfo[i].pButton->ShowWindow(SW_SHOW);
+		m_vecButtonInfo[i].pButton->SetImage(m_vecButtonInfo[i].strImg);
+		if (!m_vecButtonInfo[i].strTips.IsEmpty())
+		{
+			ModifyTooltips(CONTROL_BUTTON_ID + i, m_vecButtonInfo[i].strTips);
+		}
+	}
 }
 
 void CAutoRunDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -162,11 +212,34 @@ HCURSOR CAutoRunDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
-BOOL CAutoRunDlg::OnEraseBkgnd(CDC* pDC)
+void CAutoRunDlg::OnDestroy()
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	return TRUE;
-	return CTooltipsDialog::OnEraseBkgnd(pDC);
+	for (size_t i = 0; i < m_vecButtonInfo.size(); i++)
+	{
+		if (m_vecButtonInfo[i].pButton)
+		{
+			delete m_vecButtonInfo[i].pButton;
+			m_vecButtonInfo[i].pButton = nullptr;
+		}
+	}
+	m_vecButtonInfo.clear();
+}
+
+void CAutoRunDlg::OnRangeButtonCmds(UINT nID)
+{
+	int nBtnIndex = nID - CONTROL_BUTTON_ID;
+	if (nBtnIndex > -1 && nBtnIndex < m_vecButtonInfo.size())
+	{
+		if (!m_vecButtonInfo[nBtnIndex].strCommand.IsEmpty())
+		{
+			if (m_vecButtonInfo[nBtnIndex].strCommand == _T("exit"))
+			{
+				OnCancel();
+			}
+			else
+			{
+				ShellExecute(NULL, _T("open"), m_vecButtonInfo[nBtnIndex].strCommand, NULL, NULL, SW_SHOWNORMAL);
+			}
+		}
+	}
 }
