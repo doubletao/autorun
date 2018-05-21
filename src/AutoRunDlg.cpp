@@ -104,7 +104,6 @@ BOOL CAutoRunDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	InitializeUI();
-	SetWindowText(_T("北京索为视界科技有限公司"));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -114,6 +113,11 @@ void CAutoRunDlg::LoadConfig()
 	CString strConfigPath = CGlobalFunction::GetCurPath();
 	strConfigPath.Append(_T("\\AutoRun\\"));
 	CString strConfigFile = strConfigPath + _T("Config.ini");
+
+	CString strTitle;
+	GetPrivateProfileString(_T("config"), _T("window_title"), strTitle, strTitle.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);
+	strTitle.ReleaseBuffer();
+	SetWindowText(strTitle);
 
 	CString strBkImg;
 	GetPrivateProfileString(_T("config"), _T("background_img"), strBkImg, strBkImg.GetBuffer(MAX_PATH), MAX_PATH, strConfigFile);

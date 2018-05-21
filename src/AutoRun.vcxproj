@@ -135,6 +135,7 @@
     <None Include="res\AutoRun.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\bin\sowill.ico" />
     <Image Include="res\AutoRun.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
